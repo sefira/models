@@ -16,6 +16,7 @@ add_arg = functools.partial(add_arguments, argparser=parser)
 # yapf: disable
 add_arg('learning_rate',    float, 0.001,     "Learning rate.")
 add_arg('lr_policy',        str,   'piecewise', "Learning rate policy, piecewise and exponential.")
+add_arg('optimizer',        str,   'RMSProp',   "RMSProp and Momentum")
 add_arg('batch_size',       int,   32,        "Minibatch size.")
 add_arg('num_passes',       int,   120,       "Epoch number.")
 add_arg('use_gpu',          bool,  True,      "Whether use GPU.")
@@ -225,21 +226,26 @@ def parallel_exe(args,
         learning_rate, learning_rate * 0.5, learning_rate * 0.25,
         learning_rate * 0.1, learning_rate * 0.01
     ]
-    if args.lr_policy == 'piecewise':
-        optimizer = fluid.optimizer.RMSProp(
+    if args.optimizer == 'RMSProp':
+        if args.lr_policy == 'piecewise':
+            optimizer = fluid.optimizer.RMSProp(
+                learning_rate=fluid.layers.piecewise_decay(boundaries, values),
+                regularization=fluid.regularizer.L2Decay(0.00005), )
+        elif args.lr_policy == 'exponential':
+            learning_rate_p = fluid.layers.exponential_decay(
+                learning_rate=learning_rate,
+                decay_steps=800720,
+                decay_rate=0.95,
+                staircase=True)
+            optimizer = fluid.optimizer.RMSProp(
+                learning_rate=learning_rate_p,
+                rho=0.9,
+                momentum=0.9,
+                regularization=fluid.regularizer.L2Decay(0.00005), )
+    elif args.optimizer == 'Momentum':
+        optimizer = fluid.optimizer.Momentum(
             learning_rate=fluid.layers.piecewise_decay(boundaries, values),
-            regularization=fluid.regularizer.L2Decay(0.00005), )
-    elif args.lr_policy == 'exponential':
-        learning_rate_p = fluid.layers.exponential_decay(
-            learning_rate=learning_rate,
-            decay_steps=800720,
-            decay_rate=0.95,
-            staircase=True)
-        optimizer = fluid.optimizer.RMSProp(
-            learning_rate=learning_rate_p,
-            rho=0.9,
-            momentum=0.9,
-            regularization=fluid.regularizer.L2Decay(0.00005), )
+            momentum=0.9)
 
     optimizer.minimize(loss)
 
