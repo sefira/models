@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 add_arg = functools.partial(add_arguments, argparser=parser)
 # yapf: disable
 add_arg('learning_rate',    float, 0.001,     "Learning rate.")
+add_arg('lr_policy',        str,   'piecewise', "Learning rate policy, piecewise and exponential.")
 add_arg('batch_size',       int,   32,        "Minibatch size.")
 add_arg('num_passes',       int,   120,       "Epoch number.")
 add_arg('use_gpu',          bool,  True,      "Whether use GPU.")
@@ -212,23 +213,32 @@ def parallel_exe(args,
         # learning rate decay in 12, 19 pass, respectively
         if '2014' in train_file_list:
             epocs = 82783 / batch_size
-            boundaries = [epocs * 12, epocs * 19]
+            boundaries = [epocs * 12, epocs * 19, epocs * 25, epocs * 35]
         elif '2017' in train_file_list:
             epocs = 118287 / batch_size
-            boundaries = [epcos * 12, epocs * 19]
-        values = [
-            learning_rate, learning_rate * 0.5, learning_rate * 0.25
-        ]
+            boundaries = [epocs * 15, epocs * 20, epocs * 25, epocs * 35]
     elif data_args.dataset == 'pascalvoc':
         epocs = 19200 / batch_size
         boundaries = [epocs * 40, epocs * 60, epocs * 80, epocs * 100]
-        values = [
-            learning_rate, learning_rate * 0.5, learning_rate * 0.25,
-            learning_rate * 0.1, learning_rate * 0.01
-        ]
-    optimizer = fluid.optimizer.RMSProp(
-        learning_rate=fluid.layers.piecewise_decay(boundaries, values),
-        regularization=fluid.regularizer.L2Decay(0.00005), )
+    values = [
+        learning_rate, learning_rate * 0.5, learning_rate * 0.25,
+        learning_rate * 0.1, learning_rate * 0.01
+    ]
+    if args.lr_policy == 'piecewise':
+        optimizer = fluid.optimizer.RMSProp(
+            learning_rate=fluid.layers.piecewise_decay(boundaries, values),
+            regularization=fluid.regularizer.L2Decay(0.00005), )
+    elif args.lr_policy == 'exponential':
+        learning_rate_p = fluid.layers.exponential_decay(
+            learning_rate=learning_rate,
+            decay_steps=800720,
+            decay_rate=0.95,
+            staircase=True)
+        optimizer = fluid.optimizer.RMSProp(
+            learning_rate=learning_rate_p,
+            rho=0.9,
+            momentum=0.9,
+            regularization=fluid.regularizer.L2Decay(0.00005), )
 
     optimizer.minimize(loss)
 
