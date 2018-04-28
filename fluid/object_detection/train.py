@@ -19,6 +19,7 @@ add_arg('lr_policy',        str,   'piecewise', "Learning rate policy, piecewise
 add_arg('batch_size',       int,   32,        "Minibatch size.")
 add_arg('num_passes',       int,   120,       "Epoch number.")
 add_arg('use_gpu',          bool,  True,      "Whether use GPU.")
+add_arg('parallel',         bool,  True,      "Parallel.")
 add_arg('dataset',          str,   'pascalvoc', "coco2014, coco2017, and pascalvoc.")
 add_arg('model_save_dir',   str,   'model',     "The path to save model.")
 add_arg('pretrained_model', str,   'pretrained/ssd_mobilenet_v1_coco/', "The init model path.")
