@@ -10,6 +10,7 @@ import paddle.fluid as fluid
 import reader
 from mobilenet_ssd import mobile_net
 from utility import add_arguments, print_arguments
+from utility import piecewise_decay_with_warmup
 
 parser = argparse.ArgumentParser(description=__doc__)
 add_arg = functools.partial(add_arguments, argparser=parser)
@@ -228,23 +229,23 @@ def parallel_exe(args,
     ]
     if args.optimizer == 'RMSProp':
         if args.lr_policy == 'piecewise':
+            learning_rate=fluid.layers.piecewise_decay(boundaries, values)
             optimizer = fluid.optimizer.RMSProp(
-                learning_rate=fluid.layers.piecewise_decay(boundaries, values),
+                learning_rate=learning_rate,
                 regularization=fluid.regularizer.L2Decay(0.00005), )
         elif args.lr_policy == 'exponential':
-            learning_rate_p = fluid.layers.exponential_decay(
+            learning_rate = fluid.layers.exponential_decay(
                 learning_rate=learning_rate,
                 decay_steps=800720,
                 decay_rate=0.95,
                 staircase=True)
             optimizer = fluid.optimizer.RMSProp(
-                learning_rate=learning_rate_p,
-                rho=0.9,
-                momentum=0.9,
+                learning_rate=learning_rate,
                 regularization=fluid.regularizer.L2Decay(0.00005), )
     elif args.optimizer == 'Momentum':
+        learning_rate=piecewise_decay_with_warmup(boundaries, values)
         optimizer = fluid.optimizer.Momentum(
-            learning_rate=fluid.layers.piecewise_decay(boundaries, values),
+            learning_rate=learning_rate,
             momentum=0.9)
 
     optimizer.minimize(loss)
@@ -301,17 +302,18 @@ def parallel_exe(args,
             start_time = time.time()
             if len(data) < devices_num: continue
             if args.parallel:
-                loss_v, = train_exe.run(fetch_list=[loss.name],
+                loss_v, learning_rate_v = train_exe.run(fetch_list=[loss.name, learning_rate.name],
                                         feed_dict=feeder.feed(data))
             else:
-                loss_v, = exe.run(fluid.default_main_program(),
+                loss_v, learning_rate_v = exe.run(fluid.default_main_program(),
                                   feed=feeder.feed(data),
-                                  fetch_list=[loss])
+                                  fetch_list=[loss, learning_rate])
             end_time = time.time()
             loss_v = np.mean(np.array(loss_v))
+            learning_rate_v = np.array(learning_rate_v)
             if batch_id % 20 == 0:
-                print("Pass {0}, batch {1}, loss {2}, time {3}".format(
-                    pass_id, batch_id, loss_v, start_time - prev_start_time))
+                print("Pass {0}, batch {1}, loss {2}, learning rate {3}, time {4}".format(
+                    pass_id, batch_id, loss_v, learning_rate_v, start_time - prev_start_time))
         test(pass_id, best_map)
         if pass_id % 10 == 0 or pass_id == num_passes - 1:
             save_model(str(pass_id))
