@@ -280,7 +280,7 @@ def parallel_exe(args,
 
     best_map = 0.
 
-    def test(pass_id, best_map):
+    def test(pass_id):
         _, accum_map = map_eval.get_map_var()
         map_eval.reset(exe)
         for batch_id, data in enumerate(test_reader()):
@@ -315,7 +315,7 @@ def parallel_exe(args,
             if batch_id % 20 == 0:
                 print("Pass {0}, batch {1}, loss {2}, learning rate {3}, time {4}".format(
                     pass_id, batch_id, loss_v, learning_rate_v, start_time - prev_start_time))
-        test(pass_id, best_map)
+        test(pass_id)
         if pass_id % 10 == 0 or pass_id == num_passes - 1:
             save_model(str(pass_id))
     print("Best test map {0}".format(best_map))
