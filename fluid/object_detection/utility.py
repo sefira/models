@@ -18,6 +18,8 @@ from __future__ import division
 from __future__ import print_function
 import distutils.util
 import numpy as np
+import paddle
+import paddle.fluid as fluid
 from paddle.fluid import core
 import paddle.fluid.layers.tensor as tensor
 import paddle.fluid.layers.nn as nn

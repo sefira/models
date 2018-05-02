@@ -230,19 +230,19 @@ def parallel_exe(args,
     ]
     if args.optimizer == 'RMSProp':
         if args.lr_policy == 'piecewise':
-            learning_rate=fluid.layers.piecewise_decay(boundaries, values)
+            learning_rate=piecewise_decay_with_warmup(boundaries, values)
             optimizer = fluid.optimizer.RMSProp(
                 learning_rate=learning_rate,
-                regularization=fluid.regularizer.L2Decay(0.00005), )
+                regularization=fluid.regularizer.L2Decay(0.0005), )
         elif args.lr_policy == 'exponential':
             learning_rate = fluid.layers.exponential_decay(
                 learning_rate=learning_rate,
-                decay_steps=800720,
-                decay_rate=0.95,
+                decay_steps=3696,
+                decay_rate=0.9,
                 staircase=True)
             optimizer = fluid.optimizer.RMSProp(
                 learning_rate=learning_rate,
-                regularization=fluid.regularizer.L2Decay(0.00005), )
+                regularization=fluid.regularizer.L2Decay(0.0005), )
     elif args.optimizer == 'Momentum':
         learning_rate=piecewise_decay_with_warmup(boundaries, values)
         optimizer = fluid.optimizer.Momentum(
