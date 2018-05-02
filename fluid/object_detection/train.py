@@ -8,7 +8,7 @@ import shutil
 import paddle
 import paddle.fluid as fluid
 import reader
-from mobilenet_ssd import mobile_net
+from mobilenet_ssd_coco import mobile_net
 from utility import add_arguments, print_arguments
 from utility import piecewise_decay_with_warmup
 from utility import exponential_decay
