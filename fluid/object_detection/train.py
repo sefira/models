@@ -18,7 +18,8 @@ add_arg = functools.partial(add_arguments, argparser=parser)
 # yapf: disable
 add_arg('learning_rate',    float, 0.001,     "Learning rate.")
 add_arg('lr_policy',        str,   'piecewise', "Learning rate policy, piecewise and exponential.")
-add_arg('optimizer',        str,   'RMSProp',   "RMSProp and Momentum")
+add_arg('weight_decay',     float, 0.00005,     "Weight decay.")
+add_arg('optimizer',        str,   'RMSProp',   "RMSProp and Momentum.")
 add_arg('batch_size',       int,   32,        "Minibatch size.")
 add_arg('num_passes',       int,   120,       "Epoch number.")
 add_arg('use_gpu',          bool,  True,      "Whether use GPU.")
@@ -233,7 +234,7 @@ def parallel_exe(args,
             learning_rate=piecewise_decay_with_warmup(boundaries, values)
             optimizer = fluid.optimizer.RMSProp(
                 learning_rate=learning_rate,
-                regularization=fluid.regularizer.L2Decay(0.0005), )
+                regularization=fluid.regularizer.L2Decay(args.weight_decay), )
         elif args.lr_policy == 'exponential':
             learning_rate = fluid.layers.exponential_decay(
                 learning_rate=learning_rate,
@@ -242,12 +243,13 @@ def parallel_exe(args,
                 staircase=True)
             optimizer = fluid.optimizer.RMSProp(
                 learning_rate=learning_rate,
-                regularization=fluid.regularizer.L2Decay(0.0005), )
+                regularization=fluid.regularizer.L2Decay(args.weight_decay), )
     elif args.optimizer == 'Momentum':
         learning_rate=piecewise_decay_with_warmup(boundaries, values)
         optimizer = fluid.optimizer.Momentum(
             learning_rate=learning_rate,
-            momentum=0.9)
+            momentum=0.9,
+            regularization=fluid.regularizer.L2Decay(args.weight_decay), )
 
     optimizer.minimize(loss)
 
