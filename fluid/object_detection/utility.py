@@ -86,7 +86,7 @@ def piecewise_decay_with_warmup(boundaries, values):
     if len(values) - len(boundaries) != 1:
         raise ValueError("len(values) - len(boundaries) should be 1")
 
-    WARM_UP_ITERS = 500
+    WARM_UP_ITERS = 500.0
     WARM_UP_FACTOR = 1.0 / 3.0
 
     global_step = _decay_step_counter()
@@ -101,8 +101,7 @@ def piecewise_decay_with_warmup(boundaries, values):
             with switch.case(global_step < WARM_UP_ITERS):
                 alpha = global_step / WARM_UP_ITERS
                 warmup_factor = WARM_UP_FACTOR * (1 - alpha) + alpha
-                warmup_val = tensor.fill_constant(
-                    shape=[1], dtype='float32', value=float(values[0] * warmup_factor))
+                warmup_val = (values[0] * warmup_factor)
                 tensor.assign(warmup_val, lr)
             for i in range(len(boundaries)):
                 boundary_val = tensor.fill_constant(
