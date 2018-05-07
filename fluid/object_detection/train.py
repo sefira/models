@@ -11,7 +11,7 @@ import reader
 from mobilenet_ssd_coco import mobile_net
 from utility import add_arguments, print_arguments
 from utility import piecewise_decay_with_warmup
-from utility import exponential_decay
+from utility import exponential_decay_with_warmup
 
 parser = argparse.ArgumentParser(description=__doc__)
 add_arg = functools.partial(add_arguments, argparser=parser)
@@ -221,7 +221,7 @@ def parallel_exe(args,
             boundaries = [epocs * 12, epocs * 19, epocs * 25, epocs * 35]
         elif '2017' in train_file_list:
             epocs = 118287 / batch_size
-            boundaries = [epocs * 15, epocs * 20, epocs * 25, epocs * 35]
+            boundaries = [epocs * 40, epocs * 60, epocs * 80, epocs * 90]
     elif data_args.dataset == 'pascalvoc':
         epocs = 19200 / batch_size
         boundaries = [epocs * 40, epocs * 60, epocs * 80, epocs * 100]

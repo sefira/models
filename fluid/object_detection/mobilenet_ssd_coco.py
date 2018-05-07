@@ -13,7 +13,7 @@ def conv_bn(input,
             num_groups=1,
             act='relu',
             use_cudnn=True):
-    parameter_attr = ParamAttr(learning_rate=0.1, initializer=MSRA())
+    parameter_attr = ParamAttr(learning_rate=1, initializer=MSRA())
     conv = fluid.layers.conv2d(
         input=input,
         num_filters=num_filters,
@@ -25,8 +25,8 @@ def conv_bn(input,
         use_cudnn=use_cudnn,
         param_attr=parameter_attr,
         bias_attr=False)
-    parameter_attr = ParamAttr(learning_rate=0.1, initializer=MSRA())
-    bias_attr = ParamAttr(learning_rate=0.2)
+    parameter_attr = ParamAttr(learning_rate=1, initializer=MSRA())
+    bias_attr = ParamAttr(learning_rate=1)
     return fluid.layers.batch_norm(input=conv, act=act)
 
 
@@ -72,25 +72,26 @@ def extra_block(input, num_filters1, num_filters2, num_groups, stride, scale):
 
 
 def mobile_net(num_classes, img, img_shape, scale=1.0):
-    # 300x300
+    # 300x300 conv0
     tmp = conv_bn(img, 3, int(32 * scale), 2, 1, 3)
-    # 150x150
+    # 150x150 conv1,2
     tmp = depthwise_separable(tmp, 32, 64, 32, 1, scale)
     tmp = depthwise_separable(tmp, 64, 128, 64, 2, scale)
-    # 75x75
+    # 75x75 conv3,4
     tmp = depthwise_separable(tmp, 128, 128, 128, 1, scale)
     tmp = depthwise_separable(tmp, 128, 256, 128, 2, scale)
-    # 38x38
+    # 38x38 conv5,6
     tmp = depthwise_separable(tmp, 256, 256, 256, 1, scale)
     tmp = depthwise_separable(tmp, 256, 512, 256, 2, scale)
 
-    # 19x19
+    # 19x19 conv7,8,9,10,11
     for i in range(5):
         tmp = depthwise_separable(tmp, 512, 512, 512, 1, scale)
     module11 = tmp
+    # conv12
     tmp = depthwise_separable(tmp, 512, 1024, 512, 2, scale)
 
-    # 10x10
+    # 10x10 conv13
     module13 = depthwise_separable(tmp, 1024, 1024, 1024, 1, scale)
     module14 = extra_block(module13, 256, 512, 1, 2, scale)
     # 5x5
@@ -108,7 +109,7 @@ def mobile_net(num_classes, img, img_shape, scale=1.0):
         max_ratio=90,
         min_sizes=[21.0, 45.0, 99.0, 153.0, 207.0, 261.0],
         max_sizes=[45.0, 99.0, 153.0, 207.0, 261.0, 315.0],
-        aspect_ratios=[[2.], [2., 3.], [2., 3.], [2., 3.], [2.], [2.]],
+        aspect_ratios=[[2.], [2., 3.], [2., 3.], [2., 3.], [2., 3.], [2., 3.]],
         base_size=img_shape[2],
         offset=0.5,
         flip=True)

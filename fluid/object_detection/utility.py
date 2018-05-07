@@ -74,9 +74,18 @@ def _decay_step_counter(begin=0):
     global_step = tensor.cast(global_step, 'float32')
     return global_step
 
-def exponential_decay(learning_rate, decay_steps, decay_rate, staircase=False):
+def exponential_decay_with_warmup(learning_rate, decay_steps, decay_rate, staircase=False):
+
+    WARM_UP_ITERS = 500.0
+    WARM_UP_FACTOR = 1.0 / 3.0
+
     global_step = _decay_step_counter()
     with init_on_cpu():
+        with control_flow.Switch() as switch:
+            with switch.case(global_step < WARM_UP_ITERS):
+                alpha = global_step / WARM_UP_ITERS
+                warmup_factor = WARM_UP_FACTOR * (1 - alpha) + alpha
+                warmup_val = (values[0] * warmup_factor)
         # update learning_rate
         div_res = global_step / decay_steps
         if staircase:
