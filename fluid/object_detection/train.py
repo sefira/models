@@ -19,6 +19,8 @@ add_arg = functools.partial(add_arguments, argparser=parser)
 add_arg('learning_rate',    float, 0.001,     "Learning rate.")
 add_arg('lr_policy',        str,   'piecewise', "Learning rate policy, piecewise and exponential.")
 add_arg('weight_decay',     float, 0.00005,     "Weight decay.")
+add_arg('exdecay_step',     int,   3696,        "Exponential decay.")
+add_arg('exdecay_rate',     float, 0.95,        "Exponential decay.")
 add_arg('optimizer',        str,   'RMSProp',   "RMSProp and Momentum.")
 add_arg('batch_size',       int,   32,        "Minibatch size.")
 add_arg('num_passes',       int,   120,       "Epoch number.")
@@ -236,10 +238,11 @@ def parallel_exe(args,
                 learning_rate=learning_rate,
                 regularization=fluid.regularizer.L2Decay(args.weight_decay), )
         elif args.lr_policy == 'exponential':
-            learning_rate = fluid.layers.exponential_decay(
+            #learning_rate = fluid.layers.exponential_decay(
+            learning_rate = exponential_decay_with_warmup(
                 learning_rate=learning_rate,
-                decay_steps=3696,
-                decay_rate=0.9,
+                decay_steps=args.exdecay_step,
+                decay_rate=args.exdecay_rate,
                 staircase=True)
             optimizer = fluid.optimizer.RMSProp(
                 learning_rate=learning_rate,

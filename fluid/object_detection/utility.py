@@ -23,6 +23,7 @@ import paddle.fluid as fluid
 from paddle.fluid import core
 import paddle.fluid.layers.tensor as tensor
 import paddle.fluid.layers.nn as nn
+import paddle.fluid.layers.ops as ops
 import paddle.fluid.layers.control_flow as control_flow
 from paddle.fluid.initializer import init_on_cpu
 
@@ -81,16 +82,17 @@ def exponential_decay_with_warmup(learning_rate, decay_steps, decay_rate, stairc
 
     global_step = _decay_step_counter()
     with init_on_cpu():
-        with control_flow.Switch() as switch:
-            with switch.case(global_step < WARM_UP_ITERS):
-                alpha = global_step / WARM_UP_ITERS
-                warmup_factor = WARM_UP_FACTOR * (1 - alpha) + alpha
-                warmup_val = (values[0] * warmup_factor)
         # update learning_rate
         div_res = global_step / decay_steps
         if staircase:
             div_res = ops.floor(div_res)
         decayed_lr = learning_rate * (decay_rate**div_res)
+        with control_flow.Switch() as switch:
+            with switch.case(global_step < WARM_UP_ITERS):
+                alpha = global_step / WARM_UP_ITERS
+                warmup_factor = WARM_UP_FACTOR * (1 - alpha) + alpha
+                warmup_val = (learning_rate * warmup_factor)
+                decayed_lr = warmup_val
     return decayed_lr
 
 def piecewise_decay_with_warmup(boundaries, values):
