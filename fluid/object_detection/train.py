@@ -311,7 +311,7 @@ def parallel_exe(args,
             if len(data) < devices_num: continue
             if args.parallel:
                 loss_v, learning_rate_v = train_exe.run(fetch_list=[loss.name, learning_rate.name],
-                                        feed_dict=feeder.feed(data))
+                                        feed=feeder.feed(data))
             else:
                 loss_v, learning_rate_v = exe.run(fluid.default_main_program(),
                                   feed=feeder.feed(data),
