@@ -82,18 +82,26 @@ def exponential_decay_with_warmup(learning_rate, decay_steps, decay_rate, stairc
 
     global_step = _decay_step_counter()
     with init_on_cpu():
-        # update learning_rate
-        div_res = global_step / decay_steps
-        if staircase:
-            div_res = ops.floor(div_res)
-        decayed_lr = learning_rate * (decay_rate**div_res)
+        lr = tensor.create_global_var(
+            shape=[1],
+            value=0.0,
+            dtype='float32',
+            persistable=True,
+            name="learning_rate")
         with control_flow.Switch() as switch:
             with switch.case(global_step < WARM_UP_ITERS):
                 alpha = global_step / WARM_UP_ITERS
                 warmup_factor = WARM_UP_FACTOR * (1 - alpha) + alpha
                 warmup_val = (learning_rate * warmup_factor)
-                decayed_lr = warmup_val
-    return decayed_lr
+                tensor.assign(warmup_val, lr)
+            with switch.default():
+                # update learning_rate
+                div_res = global_step / decay_steps
+                if staircase:
+                    div_res = ops.floor(div_res)
+                decayed_lr = learning_rate * (decay_rate**div_res)
+                tensor.assign(decayed_lr, lr)
+    return lr
 
 def piecewise_decay_with_warmup(boundaries, values):
     if len(values) - len(boundaries) != 1:
