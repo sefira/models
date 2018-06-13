@@ -28,6 +28,13 @@ add_arg('mean_value_G',     float, 127.5,  "Mean value for G channel which will 
 add_arg('mean_value_R',     float, 127.5,  "Mean value for R channel which will be subtracted.")  #103.94
 # yapf: enable
 
+b0_v = 0
+w0_v = 0
+w1_v = 0
+w2_v = 0
+input_v = 0
+output_v = 0
+
 
 def infer(args, data_args, image_path, model_dir):
     image_shape = [3, data_args.resize_h, data_args.resize_w]
@@ -52,17 +59,62 @@ def infer(args, data_args, image_path, model_dir):
     infer_reader = reader.infer(data_args, image_path)
     feeder = fluid.DataFeeder(place=place, feed_list=[image])
 
+    #print( fluid.default_main_program())
     def infer():
         data = infer_reader()
-        nmsed_out_v = exe.run(fluid.default_main_program(),
-                              feed=feeder.feed([[data]]),
-                              fetch_list=[nmsed_out],
-                              return_numpy=False)
-        nmsed_out_v = np.array(nmsed_out_v[0])
-        draw_bounding_box_on_image(image_path, nmsed_out_v,
-                                   args.confs_threshold)
-        for dt in nmsed_out_v:
-            category_id, score, xmin, ymin, xmax, ymax = dt.tolist()
+        global b0_v
+        global w0_v
+        global w1_v
+        global w2_v
+        global input_v
+        global output_v
+        img = fluid.framework.get_var('image')
+        b0 = fluid.framework.get_var('batch_norm_34.b_0')
+        w0 = fluid.framework.get_var('batch_norm_34.w_0')
+        w1 = fluid.framework.get_var('batch_norm_34.w_1')
+        w2 = fluid.framework.get_var('batch_norm_34.w_2')
+        input = fluid.framework.get_var('conv2d_21.tmp_0')
+        output = fluid.framework.get_var('batch_norm_34.tmp_2')
+        relu_output = fluid.framework.get_var('batch_norm_34.tmp_3')
+
+        test_program = fluid.default_main_program().clone(for_test=True)
+        print(test_program)
+        nmsed_out_v, img_v, b0_v, w0_v, w1_v, w2_v, input_v, output_v, relu_output_v = exe.run(
+            test_program,
+            feed=feeder.feed([[data]]),
+            fetch_list=[
+                nmsed_out, img, b0, w0, w1, w2, input, output, relu_output
+            ],
+            return_numpy=False)
+        nmsed_out_v = np.array(nmsed_out_v)
+        #print(nmsed_out_v)
+        #img_v = np.array(img_v)
+        b0_v = np.array(b0_v)
+        w0_v = np.array(w0_v)
+        w1_v = np.array(w1_v)
+        w2_v = np.array(w2_v)
+        input_v = np.array(input_v)
+        output_v = np.array(output_v)
+        relu_output_v = np.array(relu_output)
+        print(relu_output)
+        print(relu_output_v)
+        print("b0 shape:{}".format(b0_v.shape))
+        print("w0 shape:{}".format(w0_v.shape))
+        print("w1 shape:{}".format(w1_v.shape))
+        print("w2 shape:{}".format(w2_v.shape))
+        print("in shape:{}".format(input_v.shape))
+        print("ou shape:{}".format(output_v.shape))
+        print("re shape:{}".format(relu_output_v.shape))
+        print("b0:{}".format(b0_v[0]))
+        print("w0:{}".format(w0_v[0]))
+        print("w1:{}".format(w1_v[0]))
+        print("w2:{}".format(w2_v[0]))
+        print("in:{}".format(input_v[0, 0, 0, 0]))
+        print("ou:{}".format(output_v[0, 0, 0, 0]))
+        #print("re:{}".format(relu_output_v[0,0,0,0]))
+        print(((input_v - w1_v) / np.sqrt(w2_v + 0.0000001)) * w0_v + b0_v)
+        print(((input_v[0, 0, 0, 0] - w1_v[0]) / np.sqrt(w2_v[0] + 0.0000001)) *
+              w0_v[0] + b0_v[0])
 
     infer()
 

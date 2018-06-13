@@ -33,7 +33,7 @@ add_arg('resize_w',         int,   300,    "The resized image height.")
 add_arg('mean_value_B',     float, 127.5,  "Mean value for B channel which will be subtracted.")  #123.68
 add_arg('mean_value_G',     float, 127.5,  "Mean value for G channel which will be subtracted.")  #116.78
 add_arg('mean_value_R',     float, 127.5,  "Mean value for R channel which will be subtracted.")  #103.94
-add_arg('is_toy',           int,   0, "Toy for quick debug, 0 means using all data, while n means using only n sample.")
+add_arg('is_toy',           int,   2, "Toy for quick debug, 0 means using all data, while n means using only n sample.")
 #yapf: enable
 
 
@@ -162,14 +162,16 @@ def parallel_exe(args,
             start_time = time.time()
             if len(data) < devices_num: continue
             if args.parallel:
-                loss_v, batch_norm_34 = train_exe.run(fetch_list=[loss.name, 'batch_norm_34.w_2'],
+                loss_v, batch_norm_34, batch_norm_34_output = train_exe.run(fetch_list=[loss.name, 'batch_norm_34.w_2', 'batch_norm_34.tmp_2'],
                                         feed=feeder.feed(data))
             else:
-                loss_v, = exe.run(fluid.default_main_program(),
+                loss_v, batch_norm_34, batch_norm_34_output = exe.run(fluid.default_main_program(),
                                   feed=feeder.feed(data),
-                                  fetch_list=[loss])
+                                  fetch_list=[loss, 'batch_norm_34.w_2', 'batch_norm_34.tmp_2'])
             save_model("debug_batch_{}".format(str(batch_id % 2)))
             batch_norm_34 = np.array(batch_norm_34)
+            batch_norm_34_output = np.array(batch_norm_34_output)
+            print(batch_norm_34_output[0,0,0,0])
             has_nan = np.any(np.isnan(batch_norm_34))
             print(batch_norm_34[:16])
             if has_nan:
