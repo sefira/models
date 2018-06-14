@@ -160,7 +160,7 @@ def parallel_exe(args,
         for batch_id, data in enumerate(train_reader()):
             prev_start_time = start_time
             start_time = time.time()
-            if len(data) < devices_num: continue
+            if len(data) < devices_num*2: continue
             if args.parallel:
                 loss_v, batch_norm_34, batch_norm_34_output = train_exe.run(fetch_list=[loss.name, 'batch_norm_34.w_2', 'batch_norm_34.tmp_2'],
                                         feed=feeder.feed(data))
